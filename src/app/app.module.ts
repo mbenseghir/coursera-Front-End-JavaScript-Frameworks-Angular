@@ -42,7 +42,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     AboutComponent,
     HomeComponent,
     ContactComponent,
-    LoginComponent
+    LoginComponent,
+    
   ],
   imports: [
     BrowserModule,
@@ -61,7 +62,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     FormsModule,
     MatSelectModule,
     MatSlideToggleModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    
  ],
   providers: [
     DishService,
