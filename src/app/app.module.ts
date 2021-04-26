@@ -25,6 +25,7 @@ import 'hammerjs';
 import { LoginComponent } from './login/login.component';
 import { MatDialogModule } from '@angular/material/dialog';
 
+
 @NgModule({
   declarations: [
     AppComponent,
