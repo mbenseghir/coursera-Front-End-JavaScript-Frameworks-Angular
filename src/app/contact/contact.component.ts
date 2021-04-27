@@ -1,29 +1,41 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
 import { Feedback, ContactType } from '../shared/feedback';
-
+import { flyInOut, expand } from '../animations/app.animation';
+import { FeedbackService } from '../services/feedback.service';
 
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
-  styleUrls: ['./contact.component.scss']
+  styleUrls: ['./contact.component.scss'],
+  // tslint:disable-next-line:use-host-property-decorator
+  host: {
+    '[@flyInOut]': 'true',
+    'style': 'display: block;'
+  },
+  animations: [
+    flyInOut(),
+    expand()
+  ]
 })
 export class ContactComponent implements OnInit {
 
-  
+  @ViewChild('fform') feedbackFormDirective: { resetForm: () => void; };
 
   feedbackForm: FormGroup;
   feedback: Feedback;
   contactType = ContactType;
+  errMess: string;
+  showFeedbackForm = true;
+  showSubmittedFeedback = false;
+  showLoadingSpinner = false;
+
   formErrors = {
     'firstname': '',
     'lastname': '',
     'telnum': '',
     'email': ''
   };
-
-  //@ViewChild('fform') feedbackFormDirective;
 
   validationMessages = {
     'firstname': {
@@ -46,27 +58,69 @@ export class ContactComponent implements OnInit {
     },
   };
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder,
+    private feedbackService: FeedbackService) {
     this.createForm();
   }
 
   ngOnInit() {
   }
+
   createForm() {
     this.feedbackForm = this.fb.group({
-      firstname: ['', Validators.required],
-      lastname: ['', Validators.required],
-      telnum: ['', Validators.required],
-      email: ['', Validators.required],
+      firstname: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(25)]],
+      lastname: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(25)]],
+      telnum: ['', [Validators.required, Validators.pattern]],
+      email: ['', [Validators.required, Validators.email]],
       agree: false,
       contacttype: 'None',
       message: ''
     });
+
+    this.feedbackForm.valueChanges
+      .subscribe(data => this.onValueChanged(data));
+
+    this.onValueChanged(); // (re)set validation messages now
+  }
+
+  onValueChanged(data?: any) {
+    if (!this.feedbackForm) { return; }
+    const form = this.feedbackForm;
+    for (const field in this.formErrors) {
+      if (this.formErrors.hasOwnProperty(field)) {
+        // clear previous error message (if any)
+        this.formErrors[field] = '';
+        const control = form.get(field);
+        if (control && control.dirty && !control.valid) {
+          const messages = this.validationMessages[field];
+          for (const key in control.errors) {
+            if (control.errors.hasOwnProperty(key)) {
+              this.formErrors[field] += messages[key] + ' ';
+            }
+          }
+        }
+      }
+    }
   }
 
   onSubmit() {
+    this.showFeedbackForm = false;
+    this.showLoadingSpinner = true;
     this.feedback = this.feedbackForm.value;
     console.log(this.feedback);
+    this.feedbackService.submitFeedback(this.feedback)
+      .subscribe(feedback => {
+        this.feedback = feedback;
+        this.showSubmittedFeedback = true;
+        this.showLoadingSpinner = false;
+        setTimeout(() => {
+          this.showSubmittedFeedback = false;
+          this.showFeedbackForm = true;
+        }, 5000);
+      },
+        errmess => { this.feedback = null; this.errMess = <any>errmess; });
+
+
     this.feedbackForm.reset({
       firstname: '',
       lastname: '',
@@ -76,8 +130,7 @@ export class ContactComponent implements OnInit {
       contacttype: 'None',
       message: ''
     });
-    
-    //this.feedbackFormDirective.resetForm();
-  }
 
+    this.feedbackFormDirective.resetForm();
+  }
 }
